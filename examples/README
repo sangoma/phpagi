@@ -1,0 +1,27 @@
+To execute any of the examples, it must set up an extension in your dialplan.
+
+For example:
+
+exten => *111,1,agi(dtmf.php)
+
+dtmf.php must be in your script directory, often /var/lib/asterisk/agi-bin/.
+dtmf.php must be executable.  (chmod 755 dtmf.php)
+dtmf.php must have the correct path to php in the first line.
+
+-----------------------------------------------------------------------------
+Examples:
+
+dtmf.php is a simple script that reads dtmf tones and reads them back to you.
+
+input.php is a simple text input script. See documentation on the text_input
+function.
+
+my_ip.php is a simple example of using the manager api from within an agi. It
+assumes you are connecting with a SIP channel.
+
+ping.php is a program that pings a host from agi.
+
+ring.php is a standalone program that rings a sip extension.
+
+sip_show_peer.php is a standalone program that use the manager api to list
+sip peers.
