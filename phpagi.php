@@ -412,7 +412,7 @@ class AGI
     * @link http://www.voip-info.org/wiki-Asterisk+variables
     * @param string $variable name
     * @param boolean $getvalue return the value only
-    * @return array, see evaluate for return information. ['result'] is 0 if variable hasn't been set, 1 if it has. ['data'] holds the value.
+    * @return array, see evaluate for return information. ['result'] is 0 if variable hasn't been set, 1 if it has. ['data'] holds the value. returns value if $getvalue is TRUE
     */
     function get_variable($variable,$getvalue=FALSE)
     {
@@ -434,7 +434,7 @@ class AGI
     * @param string $variable name
     * @param string $channel channel
     * @param boolean $getvalue return the value only 
-    * @return array, see evaluate for return information. ['result'] is 0 if variable hasn't been set, 1 if it has. ['data'] holds the value.
+    * @return array, see evaluate for return information. ['result'] is 0 if variable hasn't been set, 1 if it has. ['data'] holds the value.  returns value if $getvalue is TRUE
     */
     function get_fullvariable($variable,$channel=FALSE,$getvalue=FALSE)
     {
