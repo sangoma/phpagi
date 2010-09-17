@@ -5,7 +5,7 @@
   *
   * $Id: phpagi-asmanager.php,v 1.10 2005/05/25 18:43:48 pinhole Exp $
   *
-  * Copyright (c) 2004, 2005 Matthew Asham <matthewa@bcwireless.net>, David Eder <david@eder.us>
+  * Copyright (c) 2004 - 2010 Matthew Asham <matthew@ochrelabs.com>, David Eder <david@eder.us> and others
   * All Rights Reserved.
   *
   * This software is released under the terms of the GNU Lesser General Public License v2.1
@@ -47,14 +47,14 @@
     * @var array
     * @access public
     */
-    var $config;
+    public $config;
 
    /**
     * Socket
     *
     * @access public
     */
-    var $socket = NULL;
+    public $socket = NULL;
 
    /**
     * Server we are connected to
@@ -62,7 +62,7 @@
     * @access public
     * @var string
     */
-    var $server;
+    public $server;
 
    /**
     * Port on the server we are connected to
@@ -70,7 +70,7 @@
     * @access public
     * @var integer
     */
-    var $port;
+    public $port;
 
    /**
     * Parent AGI
@@ -78,7 +78,7 @@
     * @access private
     * @var AGI
     */
-    var $pagi;
+    private $pagi;
 
    /**
     * Event Handlers
@@ -86,8 +86,16 @@
     * @access private
     * @var array
     */
-    var $event_handlers;
+    private $event_handlers;
 
+    /**
+     * Whether we're successfully logged in
+     *
+     * @access private
+     * @var boolean
+     */
+    private $_logged_in = FALSE;
+    
    /**
     * Constructor
     *
@@ -250,10 +258,12 @@
       $res = $this->send_request('login', array('Username'=>$username, 'Secret'=>$secret));
       if($res['Response'] != 'Success')
       {
+        $this->_logged_in = FALSE;
         $this->log("Failed to login.");
         $this->disconnect();
         return false;
       }
+      $this->_logged_in = TRUE;
       return true;
     }
 
@@ -264,7 +274,8 @@
     */
     function disconnect()
     {
-      $this->logoff();
+      if($this->_logged_in==TRUE)
+        $this->logoff();
       fclose($this->socket);
     }
 
@@ -638,7 +649,7 @@
     * @link http://www.voip-info.org/wiki-Asterisk+Manager+API+Action+StopMonitor
     * @param string $channel
     */
-    function StopMontor($channel)
+    function StopMonitor($channel)
     {
       return $this->send_request('StopMonitor', array('Channel'=>$channel));
     }
