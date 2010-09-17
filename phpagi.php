@@ -1665,6 +1665,7 @@ class AGI
     * @access private
     * @param string $folder
     * @param integer $perms
+    * @return boolean 
     */
     function make_folder($folder, $perms=0755)
     {
@@ -1673,10 +1674,14 @@ class AGI
         for($i = 0; $i < count($f); $i++)
         {
           $base .= $f[$i];
-          if($f[$i] != '' && !file_exists($base))
-            mkdir($base, $perms);
+          if($f[$i] != '' && !file_exists($base)) {
+            if(mkdir($base, $perms)==FALSE){
+              return(FALSE);
+            }
+          }
           $base .= DIRECTORY_SEPARATOR;
         }
+        return(TRUE);
     }	
 
 }
