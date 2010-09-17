@@ -292,7 +292,7 @@ class AGI
     */
     function database_get($family, $key)
     {
-        return $this->evaluate("DATABASE GET \"$family\ \"$key\"");
+        return $this->evaluate("DATABASE GET \"$family\" \"$key\"");
     }
 
     /**
@@ -443,9 +443,9 @@ class AGI
     * @link http://www.voip-info.org/wiki-noop
     * @return array, see evaluate for return information.
     */
-    function noop()
+    function noop($string="")
     {
-        return $this->evaluate('NOOP');
+        return $this->evaluate("NOOP \"$string\"");
     }
 
     /**
