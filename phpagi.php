@@ -6,7 +6,7 @@
 *
 * $Id: phpagi.php,v 2.14 2005/05/25 20:30:46 pinhole Exp $
 *
-* Copyright (c) 2003, 2004, 2005 Matthew Asham <matthewa@bcwireless.net>, David Eder <david@eder.us>
+* Copyright (c) 2003 - 2010 Matthew Asham <matthew@ochrelabs.com>, David Eder <david@eder.us> and others
 * All Rights Reserved.
 *
 * This software is released under the terms of the GNU Lesser General Public License v2.1
@@ -1210,13 +1210,13 @@ class AGI
     }
 
     /**
-    * Goto - Set context, extension and priority.
+    * setContext - Set context, extension and priority.
     *
     * @param string $context
     * @param string $extension
     * @param string $priority
     */
-    function goto($context, $extension='s', $priority=1)
+    function setContext($context, $extension='s', $priority=1)
     {
         $this->set_context($context);
         $this->set_extension($extension);
