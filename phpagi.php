@@ -801,7 +801,7 @@ class AGI
     */
     function exec_setlanguage($language='en')
     {
-        return $this->exec('SetLanguage', $language);
+        return $this->exec('Set', 'CHANNEL(language)='. $language);
     }
 
     /**
