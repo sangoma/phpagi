@@ -1458,6 +1458,7 @@ class AGI
     */
     function say_punctuation($text, $escape_digits='', $frequency=8000)
     {
+        $ret="";
         for($i = 0; $i < strlen($text); $i++)
         {
           switch($text{$i})
