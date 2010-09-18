@@ -130,12 +130,19 @@ class AGI
 
 
     /**
+    * Application option delimiter
+    * 
+    * @access public
+    */
+    public $option_delim = ",";
+    
+    /**
     * Constructor
     *
     * @param string $config is the name of the config file to parse
     * @param array $optconfig is an array of configuration vars and vals, stuffed into $this->config['phpagi']
     */
-    function AGI($config=NULL, $optconfig=array())
+    function __construct($config=NULL, $optconfig=array())
     {
         // load config
         if(!is_null($config) && file_exists($config))
@@ -871,7 +878,7 @@ class AGI
     */
     function exec_dial($type, $identifier, $timeout=NULL, $options=NULL, $url=NULL)
     {
-        return $this->exec('Dial', trim("$type/$identifier,$timeout,$options,$url", ','));
+        return $this->exec('Dial', trim("$type/$identifier".$this->option_delim.$timeout.$this->option_delim.$options.$this->option_delim.$url, $this->option_delim));
     }
 
     /**
@@ -887,7 +894,7 @@ class AGI
     */
     function exec_goto($a, $b=NULL, $c=NULL)
     {
-        return $this->exec('Goto', trim("$a,$b,$c", ','));
+        return $this->exec('Goto', trim($a.$this->option_delim.$b.$this->option_delim.$c, $this->option_delim));
     }
 
 
