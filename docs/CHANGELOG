@@ -1,6 +1,28 @@
 ----------
 CHANGES
 ----------
+Sep 18, 2010 - Matthew Asham
+	* Add option_delim to AGI to specify application option delimiter
+        * Changed constructor method to __construct
+
+Sep 17, 2010 - Matthew Asham
+	* BACKWARDS COMPATABILITY WARNING:  renamed goto() method to setContext() to address PHP 5.3 reserved keyword.  tracker #3031708
+	* add get_fullvariable to AGI class
+        * add boolean flag to get_variable and get_fullvariable methods to
+  	  return only the value - tracker #1736629
+	* initialize $ret variable in say_punctuation
+	* add string parameter to noop
+	* fix escape issue in database_get
+	* make_folder now returns true or false depending on success
+	* update exec_setlanguage to use asterisk 1.6+ language
+
+May 19, 2010 - Roland Hu
+	* new methods: set_var(), set_global_var()
+	* dialplan bug (using pipe instead of comma) is fixed in exec_dial() and exec_goto()
+	* code formatting
+
+June 8, 2010 - Matthew Asham
+	* move to svn from cvs
 
 May 25, 2005 - David Eder
 	* Added fastpass support.
