@@ -31,13 +31,7 @@
 	echo "poof!\n";
 	
 
-	echo "Documentation..\n";
-	$e="cp -R docs $dist";
-	echo $e;
-	system($e);	
-	$e="cp -R api-docs $dist";
-	echo $e;
-	system($e);
+
 	
 	
 	$files=array(
@@ -63,12 +57,34 @@
 		"examples/weather.txt.gz",
 		"examples/thanks.gsm"
 	);
+	$docs=array(
+		"CHANGELOG",
+		"fastagi.xinetd",
+		"phpagi.example.conf",
+		"README.phpagi",
+		"README.phpagi-asmanager",
+		"README.phpagi-fastagi"
+		
+		
+		
+	);
+	
 	foreach($files as $file){
 		$e="cp $file $dist";
 		echo $e."\n";
 		system($e);
 	}
 
+	echo "Documentation..\n";
+	mkdir("$dist/docs");
+	foreach($docs as $doc){
+		$e="cp docs/$doc $dist/docs";
+		echo $e."\n";
+		system($e);
+	}
+	$e="cp -R api-docs $dist";
+	echo $e;
+	system($e);
 	$ball="$dist".".tgz";
 	$e="tar czf $ball $dist";
 	system($e);

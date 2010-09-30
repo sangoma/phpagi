@@ -23,7 +23,7 @@
 *
 *
 * @package phpAGI
-* @version 2.0
+* @version 2.20
 */
 
 if (!class_exists('AGI_AsteriskManager'))
