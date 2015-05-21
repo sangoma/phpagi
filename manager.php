@@ -413,7 +413,7 @@ class Manager {
 	 * @param string $agent Agent ID of the agent to log off.
 	 * @param string $soft  Set to true to not hangup existing calls.
 	 */
-	public function AgentLogoff($agent, $soft) {
+	public function AgentLogoff($agent, $soft='false') {
 		return $this->send_request('AgentLogoff', array('Agent'=>$agent, 'Soft'=>$soft));
 	}
 
