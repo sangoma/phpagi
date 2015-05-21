@@ -229,12 +229,14 @@ class Manager {
 	 */
 	private function wait_response($allow_timeout = false) {
 		$timeout = false;
+		set_error_handler("phpasmanager_error_handler");
 		do {
 			$type = NULL;
 			$parameters = array();
 
-			if (feof($this->socket) || !$this->socket) {
+			if (!$this->socket || feof($this->socket)) {
 				$this->log("Got EOF in wait_response() from socket waiting for response, returning false",10);
+				restore_error_handler();
 				return false;
 			}
 			$buffer = trim(fgets($this->socket, 4096));
@@ -283,6 +285,7 @@ class Manager {
 		if (isset($buff)) {
 			$this->log('$buff: '.print_r($buff,true),10);
 		}
+		restore_error_handler();
 		return $parameters;
 	}
 
@@ -297,6 +300,7 @@ class Manager {
 	 * @return boolean true on success
 	 */
 	public function connect($server=NULL, $username=NULL, $secret=NULL, $events='on') {
+		set_error_handler("phpasmanager_error_handler");
 		// use config if not specified
 		if(is_null($server)) {
 			$server = $this->config['server'];
@@ -317,8 +321,10 @@ class Manager {
 
 		// connect the socket
 		$errno = $errstr = NULL;
-		$this->socket = stream_socket_client("tcp://".$this->server.":".$this->port, $errno, $errstr, $this->config['timeout'], STREAM_CLIENT_ASYNC_CONNECT);
+		$this->socket = stream_socket_client("tcp://".$this->server.":".$this->port, $errno, $errstr, 30, STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT);
+		stream_set_timeout($this->socket,30);
 		if(!$this->socket) {
+			restore_error_handler();
 			throw new \Exception("Unable to connect to manager {$this->server}:{$this->port} ($errno): $errstr");
 		}
 
@@ -326,6 +332,7 @@ class Manager {
 		$str = fgets($this->socket);
 		if($str == false) {
 			// a problem.
+			restore_error_handler();
 			throw new \Exception("Asterisk Manager Header not received");
 		} else {
 			// note: don't $this->log($str) until someone looks to see why it mangles the logging
@@ -342,12 +349,13 @@ class Manager {
 			),
 			false);
 		if($res['Response'] != 'Success') {
-			//$this->log("Failed to login.");
-			throw new \Exception("Failed to login");
 			$this->disconnect();
+			restore_error_handler();
+			throw new \Exception("Failed to login");
 			return false;
 		}
 		$this->CoreSettings();
+		restore_error_handler();
 		return true;
 	}
 
@@ -1686,5 +1694,19 @@ class Manager {
 				$this->response_catch[] =  $data;
 		}
 	}
+}
 
+
+function phpasmanager_error_handler($errno, $errstr, $errfile, $errline) {
+	switch ($errno) {
+		case E_WARNING:
+		case E_USER_WARNING:
+		case E_NOTICE:
+		case E_USER_NOTICE:
+		default:
+			//dbug("Got a php-asmanager error of [$errno] $errstr");
+		break;
+	}
+	/* Don't execute PHP internal error handler */
+	return true;
 }
