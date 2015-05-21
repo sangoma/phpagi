@@ -229,7 +229,7 @@ class Manager {
 	 */
 	private function wait_response($allow_timeout = false) {
 		$timeout = false;
-		set_error_handler("phpasmanager_error_handler");
+		set_error_handler("Asterisk\AMI\phpasmanager_error_handler");
 		do {
 			$type = NULL;
 			$parameters = array();
@@ -300,7 +300,7 @@ class Manager {
 	 * @return boolean true on success
 	 */
 	public function connect($server=NULL, $username=NULL, $secret=NULL, $events='on') {
-		set_error_handler("phpasmanager_error_handler");
+		set_error_handler("Asterisk\AMI\phpasmanager_error_handler");
 		// use config if not specified
 		if(is_null($server)) {
 			$server = $this->config['server'];
@@ -321,7 +321,7 @@ class Manager {
 
 		// connect the socket
 		$errno = $errstr = NULL;
-		$this->socket = stream_socket_client("tcp://".$this->server.":".$this->port, $errno, $errstr, 30, STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT);
+		$this->socket = stream_socket_client("tcp://".$this->server.":".$this->port, $errno, $errstr);
 		stream_set_timeout($this->socket,30);
 		if(!$this->socket) {
 			restore_error_handler();
