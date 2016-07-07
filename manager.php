@@ -194,6 +194,9 @@ class Manager {
 		$req .= "\r\n";
 		$this->log("Sending Request down socket:",10);
 		$this->log($req,10);
+		if(!$this->connected()) {
+			throw new Exception("Asterisk is not connected");
+		}
 		fwrite($this->socket, $req);
 		$response = $this->wait_response();
 
@@ -203,6 +206,9 @@ class Manager {
 			$this->log("Unexpected failure executing command: $action, reconnecting to manager and retrying: $reconnects");
 			$this->disconnect();
 			if ($this->connect($this->server.':'.$this->port, $this->username, $this->secret, $this->events) !== false) {
+				if(!$this->connected()) {
+					throw new Exception("Asterisk is not connected");
+				}
 				fwrite($this->socket, $req);
 				$response = $this->wait_response();
 			} else {
@@ -227,7 +233,7 @@ class Manager {
 	 * @param boolean $allow_timeout if the socket times out, return an empty array
 	 * @return array of parameters, empty on timeout
 	 */
-	private function wait_response($allow_timeout = false) {
+	public function wait_response($allow_timeout = false) {
 		$timeout = false;
 		set_error_handler("Asterisk\AMI\phpasmanager_error_handler");
 		do {
@@ -364,7 +370,9 @@ class Manager {
 	 *
 	 */
 	public function disconnect() {
-		$this->logoff();
+		if($this->connected()) {
+			$this->logoff();
+		}
 		fclose($this->socket);
 		$this->settings = null;
 	}
@@ -374,7 +382,7 @@ class Manager {
 	 *
 	 */
 	public function connected() {
-		return (bool)$this->socket;
+		return is_resource($this->socket) && !feof($this->socket);
 	}
 
 	/**
@@ -444,6 +452,25 @@ class Manager {
 	}
 
 	/**
+	 * Send an arbitrary event.
+	 *
+	 * Send an event to manager sessions.
+	 *
+	 * @link https://wiki.asterisk.org/wiki/display/AST/Asterisk+11+ManagerAction_UserEvent
+	 * @param string $channel
+	 * @param string $file
+	 */
+	function UserEvent($event, $headers=array()) {
+		$d = array('UserEvent'=>$event);
+		$i = 1;
+		foreach($headers as $header) {
+			$d['Header'.$i] = $header;
+			$i++;
+		}
+		return $this->send_request('UserEvent', $d);
+	}
+
+	/**
 	 * Change monitoring filename of a channel
 	 *
 	 * This action may be used to change the file started by a previous 'Monitor' action.
@@ -475,6 +502,45 @@ class Manager {
 	}
 
 	/**
+	 * Tell Asterisk to poll mailboxes for a change
+	 *
+	 * Normally, MWI indicators are only sent when Asterisk itself changes a mailbox.
+	 * With external programs that modify the content of a mailbox from outside the
+	 * application, an option exists called pollmailboxes that will cause voicemail
+	 * to continually scan all mailboxes on a system for changes. This can cause a
+	 * large amount of load on a system. This command allows external applications
+	 * to signal when a particular mailbox has changed, thus permitting external
+	 * applications to modify mailboxes and MWI to work without introducing
+	 * considerable CPU load.
+	 *
+	 * If Context is not specified, all mailboxes on the system will be polled for
+	 * changes. If Context is specified, but Mailbox is omitted, then all mailboxes
+	 * within Context will be polled. Otherwise, only a single mailbox will be
+	 * polled for changes.
+	 *
+	 * @link https://wiki.asterisk.org/wiki/display/AST/Asterisk+12+ManagerAction_VoicemailRefresh
+	 * @param string $context
+	 * @param string $mailbox
+	 * @param string $actionid ActionID for this transaction. Will be returned.
+	 */
+	function VoicemailRefresh($context=NULL,$mailbox=NULL, $actionid=NULL) {
+		if(version_compare($this->settings['AsteriskVersion'], "12.0", "lt")) {
+			return false;
+		}
+		$parameters = array();
+		if(!empty($context)) {
+			$parameters['Context'] = $context;
+		}
+		if(!empty($mailbox)) {
+			$parameters['Mailbox'] = $mailbox;
+		}
+		if(!empty($actionid)) {
+			$parameters['ActionID'] = $actionid;
+		}
+		return $this->send_request('VoicemailRefresh', $parameters);
+	}
+
+	/**
 	 * Get and parse codecs
 	 * @param {string} $type='audio' Type of codec to look up
 	 */
@@ -496,14 +562,16 @@ class Manager {
 			break;
 		}
 
-		if(preg_match_all('/(\d*)\s'.$type.'\s*([a-z0-9]*)\s\((.*)\)/i',$ret['data'],$matches)) {
-			return array_combine($matches[1], $matches[2]);
+		if(preg_match_all('/\d{1,6}\s*'.$type.'\s*([a-z0-9]*)\s/i',$ret['data'],$matches)) {
+			return $matches[1];
 		} else {
 			return array();
 		}
 	}
 
 	/**
+	 * Kick a Confbridge user.
+	 *
 	 * Kick a Confbridge user.
 	 *
 	 * @link https://wiki.asterisk.org/wiki/display/AST/Asterisk+11+ManagerAction_ConfbridgeKick
@@ -835,6 +903,7 @@ class Manager {
 	 * @param string $from
 	 * @param string $body
 	 * @param string $variable optional
+	 * @return array result of send_request
 	*/
 	function MessageSend($to, $from, $body, $variable=null) {
 		$parameters['To'] = $to;
@@ -946,7 +1015,7 @@ class Manager {
 	 * @param string $priority
 	 * @param integer $timeout
 	 * @param string $callerid
-	 * @param string $variable
+	 * @param string $variable (Supports an array of values)
 	 * @param string $account
 	 * @param string $application
 	 * @param string $data
@@ -1353,7 +1422,11 @@ class Manager {
  				$key = '/'.$family;
 				if (isset($this->memAstDB[$key])) {
 					return array($key => $this->memAstDB[$key]);
+				} elseif(isset($this->memAstDBArray[$key])) {
+					return $this->memAstDBArray[$key];
 				} else {
+					//TODO: this is intensive cache results
+					$k = $key;
 					$key .= '/';
 					$len = strlen($key);
 					$fam_arr = array();
@@ -1362,6 +1435,7 @@ class Manager {
 							$fam_arr[$this_key] = $value;
 						}
 					}
+					$this->memAstDBArray[$k] = $fam_arr;
 					return $fam_arr;
 				}
 			}
@@ -1398,13 +1472,25 @@ class Manager {
 	 * @return bool True if successful
 	 */
 	public function database_put($family, $key, $value) {
-		$value = (trim($value) == '')?'"'.$value.'"':$value;
-		$r = $this->command("database put ".str_replace(" ","/",$family)." ".str_replace(" ","/",$key)." ".$value);
+		$write_through = false;
 		if (!empty($this->memAstDB)){
 			$keyUsed="/".str_replace(" ","/",$family)."/".str_replace(" ","/",$key);
-			$this->memAstDB[$keyUsed] = $value;
+			if (!isset($this->memAstDB[$keyUsed]) || $this->memAstDB[$keyUsed] != $value) {
+				$this->memAstDB[$keyUsed] = $value;
+				$write_through = true;
+			}
+			if(isset($this->memAstDBArray[$keyUsed])) {
+				unset($this->memAstDBArray[$keyUsed]);
+			}
+		} else {
+			$write_through = true;
 		}
-		return (bool)strstr($r["data"], "success");
+		if ($write_through) {
+			$value = str_replace('"','\\"',$value);
+			$r = $this->command("database put ".str_replace(" ","/",$family)." ".str_replace(" ","/",$key)." \"".$value."\"");
+			return (bool)strstr($r["data"], "success");
+		}
+		return true;
 	}
 
 	/**
@@ -1422,7 +1508,7 @@ class Manager {
 				$this->LoadAstDB();
 			}
 			$keyUsed="/".str_replace(" ","/",$family)."/".str_replace(" ","/",$key);
-			if (array_key_exists($keyUsed,$this->memAstDB)){
+			if (isset($this->memAstDB[$keyUsed])){
 				return $this->memAstDB[$keyUsed];
 			}
 		} else {
@@ -1446,12 +1532,16 @@ class Manager {
 	 * @return bool True if successful
 	 */
 	public function database_del($family, $key) {
-		if (!empty($this->memAstDB)){
+		$r = $this->command("database del ".str_replace(" ","/",$family)." ".str_replace(" ","/",$key));
+		$status = (bool)strstr($r["data"], "removed");
+		if ($status && !empty($this->memAstDB)){
 			$keyUsed="/".str_replace(" ","/",$family)."/".str_replace(" ","/",$key);
 			unset($this->memAstDB[$keyUsed]);
+			if(isset($this->memAstDBArray[$keyUsed])) {
+				unset($this->memAstDBArray[$keyUsed]);
+			}
 		}
-		$r = $this->command("database del ".str_replace(" ","/",$family)." ".str_replace(" ","/",$key));
-		return (bool)strstr($r["data"], "removed");
+		return $status;
 	}
 
 	/**
@@ -1463,12 +1553,21 @@ class Manager {
 	 * @return bool True if successful
 	 */
 	public function database_deltree($family) {
-		if (!empty($this->memAstDB)){
-			$keyUsed="/".str_replace(" ","/",$family);
-			unset($this->memAstDB[$keyUsed]);
-		}
 		$r = $this->command("database deltree ".str_replace(" ","/",$family));
-		return (bool)strstr($r["data"], "removed");
+		$status = (bool)strstr($r["data"], "removed");
+		if ($status && !empty($this->memAstDB)){
+			$keyUsed="/".str_replace(" ","/",$family);
+			foreach($this->memAstDB as $key => $val) {
+				$reg = preg_quote($keyUsed,"/");
+				if(preg_match("/^".$reg.".*/",$key)) {
+					unset($this->memAstDB[$key]);
+					if(isset($this->memAstDBArray[$key])) {
+						unset($this->memAstDBArray[$key]);
+					}
+				}
+			}
+		}
+		return $status;
 	}
 
 	/**
